@@ -158,7 +158,8 @@ eval_metrics <- function(data,
 
       # calculate metrics
       performance.metric <- calc.metric.region(lagdata[[t]],
-                                               ScYr, yr.weights, topt)
+                                               ScYr, yr.weights, topt,
+                                               atq_k, atq_a)
 
       #update lag and threshold metric matrices
       FAR.mat[i,t] <- performance.metric$FAR
@@ -231,7 +232,7 @@ eval_metrics <- function(data,
 
 
 #### Region-Wide Alarm - metric calculation ####
-calc.metric.region <- function(lagdata, ScYr, yr.weights, topt) {
+calc.metric.region <- function(lagdata, ScYr, yr.weights, topt, atq_k, atq_a) {
 
   # evaluation metric vectors, each entry represents a year
   FAR <- ADD <- AATQ <- FATQ <- c()
