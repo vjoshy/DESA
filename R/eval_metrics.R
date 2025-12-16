@@ -4,7 +4,9 @@
 #' systems across different lags and thresholds. It evaluates
 #' False Alarm Rate (FAR),Added Days Delayed (ADD), Average Alarm Time
 #' Quality (AATQ), First Alarm Time Quality (FATQ), and their weighted
-#' versions (WAATQ, WFATQ).
+#' versions (WAATQ, WFATQ). The function implements sequential model training
+#' where year j uses data from years 1 through j-1. Therefore, the first year
+#' in the dataset will not produce alert dates.
 #'
 #' @param data A data frame containing the epidemic data with lagged variables,
 #'             typically output from the compile_epi function.
@@ -12,6 +14,10 @@
 #' @param thres A vector of threshold values to evaluate
 #' (default: seq(0.1, 0.6, by = 0.05)).
 #' @param topt Optimal alarm day (default = 14).
+#' @param atq_k ATQ window parameter, increasing k widens the acceptable window for regions,
+#'              (default = 1.5).
+#' @param atq_a ATQ power parameter, controls relative penalty for early versus late detection,
+#'              (default = 2).
 #'
 #' @return A list containing three elements:
 #'   \item{metrics}{class "alarm_metrics" with the following components:
@@ -78,7 +84,9 @@
 eval_metrics <- function(data,
                          maxlag = 15,
                          thres = seq(0.1,0.6,by = 0.05),
-                         topt = 14) {
+                         topt = 14,
+                         atq_k = 1.5,
+                         atq_a = 2) {
 
   # Input validation
   if (!is.data.frame(data)) {
@@ -248,7 +256,7 @@ calc.metric.region <- function(lagdata, ScYr, yr.weights, topt) {
     FAR[y] <- calc.FAR(ScYr.data)
     ADD[y] <- calc.ADD(ScYr.data, topt)
 
-    ScYr.data$ATQ <- calc.ATQ(ScYr.data, topt)
+    ScYr.data$ATQ <- calc.ATQ(ScYr.data, topt, atq_k, atq_a)
     AATQ[y] <- calc.AATQ(ScYr.data)
     FATQ[y] <- calc.FATQ(ScYr.data)
 
@@ -308,22 +316,22 @@ calc.ADD <- function(data, topt){
 }
 
 #### Alarm Time Quality (ATQ) ####
-calc.ATQ <- function(data, topt){
+calc.ATQ <- function(data, topt, atq_k, atq_a){
 
   #ATQ metric powers and denominator
   # "True Alarm" power - power for alarms raised before optimal alarm day
-  ta.pow <- 4
+  ta.pow <- 2 * atq_a
 
   # "False Alarm" power - power for alarms raised after optimal alarm day
-  fa.pow <- 2
-  denom <- 21
+  fa.pow <- atq_a
+  denom <- topt * atq_k
 
   refdate <- suppressWarnings(min(data[data$ref_date == 1,"time"]))
   RefDateDiff <- as.numeric(refdate - data$time)
   OptDateDiff <- topt - RefDateDiff
 
   #calculate ATQ values for every day
-  ATQ <- ifelse(OptDateDiff < 0,ifelse((abs(OptDateDiff)/denom)^fa.pow > 1,1,
+  ATQ <- ifelse(OptDateDiff < 0,ifelse((abs(OptDateDiff)/denom)^fa.pow > 1, 1,
                                        (abs(OptDateDiff)/denom)^fa.pow),
                 (abs(OptDateDiff)/denom)^ta.pow)
 

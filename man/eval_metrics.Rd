@@ -4,7 +4,14 @@
 \alias{eval_metrics}
 \title{Evaluate Alarm Metrics for Epidemic Models}
 \usage{
-eval_metrics(data, maxlag = 15, thres = seq(0.1, 0.6, by = 0.05), topt = 14)
+eval_metrics(
+  data,
+  maxlag = 15,
+  thres = seq(0.1, 0.6, by = 0.05),
+  topt = 14,
+  atq_k = 1.5,
+  atq_a = 2
+)
 }
 \arguments{
 \item{data}{A data frame containing the epidemic data with lagged variables,
@@ -16,6 +23,12 @@ typically output from the compile_epi function.}
 (default: seq(0.1, 0.6, by = 0.05)).}
 
 \item{topt}{Optimal alarm day (default = 14).}
+
+\item{atq_k}{ATQ window parameter, increasing k widens the acceptable window for regions,
+(default = 1.5).}
+
+\item{atq_a}{ATQ power parameter, controls relative penalty for early versus late detection,
+(default = 2).}
 }
 \value{
 A list containing three elements:
@@ -47,7 +60,9 @@ This function calculates various performance metrics for epidemic alarm
 systems across different lags and thresholds. It evaluates
 False Alarm Rate (FAR),Added Days Delayed (ADD), Average Alarm Time
 Quality (AATQ), First Alarm Time Quality (FATQ), and their weighted
-versions (WAATQ, WFATQ).
+versions (WAATQ, WFATQ). The function implements sequential model training
+where year j uses data from years 1 through j-1. Therefore, the first year
+in the dataset will not produce alert dates.
 }
 \examples{
 # Generate simulated epidemic data
